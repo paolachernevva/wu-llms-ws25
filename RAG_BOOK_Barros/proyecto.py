@@ -1,1 +1,53 @@
-from langchain_ollama import OllamaLLMfrom langchain_core.prompts import ChatPromptTemplatefrom vector import retriever  # Retriever# 3.Generationmodel = OllamaLLM(model = "llama3.2")template = """You are a historian of modernity.Use ONLY the context to answer. If the answer is not in the context, say you don't know.Context: {book}Question: {question}"""prompt = ChatPromptTemplate.from_template(template) chain = prompt | modeldef rag_bot(question: str) -> dict:    """    Rag function: Retrieve relevant chunks,    Combines them into a context string,    Pass context + question to the LLM,    Returns model answer + retrieved docs.    """        docs = retriever.invoke(question)    context = "\n\n".join(d.page_content for d in docs)        answer = chain.invoke({"book": context, "question": question})    return {"answer": answer,            "documents": docs,}    # Interactive loopwhile True:    print("\n\n--------------------------------")    question = input("Ask your question (q to quit): ")    if question == "q":        break        # Save question for evaluation    with open("last_question.txt", "w") as f:        f.write(question)        result = rag_bot(question)    print(result["answer"])
+from langchain_ollama import OllamaLLM
+from langchain_core.prompts import ChatPromptTemplate
+from vector import retriever  # Retriever
+
+
+# 3. Generation
+model = OllamaLLM(model="llama3.2")
+
+template = """You are a historian of modernity.
+Use ONLY the context to answer. If the answer is not in the context, say you don't know.
+
+Context: {book}
+
+Question: {question}
+"""
+
+prompt = ChatPromptTemplate.from_template(template)
+chain = prompt | model
+
+
+def rag_bot(question: str) -> dict:
+    """
+    RAG function:
+    - Retrieve relevant chunks
+    - Combine them into a context string
+    - Pass context + question to the LLM
+    - Return model answer + retrieved docs
+    """
+
+    docs = retriever.invoke(question)
+    context = "\n\n".join(d.page_content for d in docs)
+
+    answer = chain.invoke({"book": context, "question": question})
+
+    return {
+        "answer": answer,
+        "documents": docs,
+    }
+
+
+# Interactive loop
+while True:
+    print("\n\n--------------------------------")
+    question = input("Ask your question (q to quit): ")
+    if question == "q":
+        break
+
+    # Save question for evaluation
+    with open("last_question.txt", "w", encoding="utf-8") as f:
+        f.write(question)
+
+    result = rag_bot(question)
+    print(result["answer"])
